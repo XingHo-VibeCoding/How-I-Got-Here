@@ -8,6 +8,7 @@ node_modules/
 
 # 我的工作日志与工具数据，不进公开仓库
 .workbuddy/
+.workbuddy-ai/memory/
 
 # 编辑器与系统临时文件
 .vscode/
