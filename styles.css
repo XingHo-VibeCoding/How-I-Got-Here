@@ -1,0 +1,421 @@
+/* 28 天 Vibe Coding 打卡闯关站 —— 样式
+ * Day 7 步骤①：只服务「三个页面的骨架」。
+ * 配色走「安静的闯关」：已完成=绿、可打卡=蓝、未解锁=灰。不做等级/金币那套游戏规则。
+ */
+
+:root {
+  --bg:          #f6f7f9;
+  --surface:     #ffffff;
+  --border:      #e3e6ea;
+  --text:        #1f2328;
+  --text-muted:  #57606a;
+  --text-faint:  #9aa4af;
+
+  --accent:      #2f6feb;
+  --accent-dark: #2559c9;
+  --accent-soft: #eef3fe;
+  --accent-ring: rgba(47, 111, 235, 0.18);
+
+  --done:        #12a06a;
+  --done-soft:   #eefaf4;
+  --done-border: #b7e6d2;
+
+  --radius:      12px;
+  --shadow:      0 1px 2px rgba(31, 35, 40, 0.06), 0 4px 12px rgba(31, 35, 40, 0.04);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 15px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* ── 页头 / 页脚 ───────────────────────────────────────── */
+
+.site-header {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  height: 56px;
+}
+
+.brand {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.stage-tag {
+  flex: none;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 10px;
+}
+
+.site-footer {
+  margin-top: auto;
+  padding: 20px 0 28px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+#app { flex: 1; padding-top: 24px; padding-bottom: 40px; }
+
+/* ── 通用文字 ─────────────────────────────────────────── */
+
+h1 { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
+h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+p  { margin: 0 0 10px; }
+
+.muted  { color: var(--text-muted); }
+.faint  { color: var(--text-faint); }
+.small  { font-size: 13px; }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+  text-decoration: none;
+}
+.back-link:hover { color: var(--accent); }
+
+/* ── 顶部进度条（只读展示）──────────────────────────── */
+
+.progress {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.progress__count { font-size: 13px; color: var(--text-muted); }
+.progress__count b { color: var(--done); font-size: 16px; }
+
+.progress__bar {
+  flex: 1;
+  height: 6px;
+  max-width: 320px;
+  background: #e9ecef;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress__fill {
+  height: 100%;
+  background: var(--done);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* ── 关卡列表 ─────────────────────────────────────────── */
+
+.week { margin-bottom: 26px; }
+
+.week__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 10px;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+  gap: 10px;
+}
+
+.cell {
+  display: block;
+  padding: 12px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  text-align: center;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.cell:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+
+.cell__num { display: block; font-size: 18px; font-weight: 600; line-height: 1.3; }
+.cell__tag { display: block; font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+
+.cell.is-done {
+  background: var(--done-soft);
+  border-color: var(--done-border);
+}
+.cell.is-done .cell__num { color: var(--done); }
+.cell.is-done .cell__tag { color: var(--done); }
+
+.cell.is-current {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-ring);
+}
+.cell.is-current .cell__num { color: var(--accent); }
+.cell.is-current .cell__tag { color: var(--accent); }
+
+.cell.is-locked {
+  background: #f1f3f5;
+  border-color: #e8eaed;
+}
+.cell.is-locked .cell__num { color: var(--text-faint); font-weight: 500; }
+
+/* ── 卡片 / 详情页 / 打卡页 ───────────────────────────── */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.panel + .panel { margin-top: 16px; }
+
+.panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+
+.badge {
+  flex: none;
+  font-size: 12px;
+  border-radius: 999px;
+  padding: 2px 10px;
+  border: 1px solid transparent;
+}
+.badge--done    { background: var(--done-soft);   color: var(--done);        border-color: var(--done-border); }
+.badge--current { background: var(--accent-soft); color: var(--accent);      border-color: #c5d7fb; }
+.badge--locked  { background: #f1f3f5;            color: var(--text-faint);  border-color: #e8eaed; }
+
+.summary {
+  margin: 14px 0 18px;
+  padding: 14px 16px;
+  background: var(--bg);
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+/* ── 按钮 ─────────────────────────────────────────────── */
+
+.actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
+  font-family: inherit;
+  font-size: 15px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.btn:hover { background: var(--accent-dark); }
+
+.btn--ghost {
+  background: transparent;
+  color: var(--accent);
+}
+.btn--ghost:hover { background: var(--accent-soft); }
+
+/* 置灰：未解锁的关、以及尚未接入的功能 */
+.btn.is-disabled,
+.btn:disabled {
+  background: #e9ecef;
+  border-color: #e9ecef;
+  color: var(--text-faint);
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ── 提示条（骨架阶段的诚实标注）──────────────────────── */
+
+.notice {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff8e6;
+  border: 1px solid #f0dca8;
+  color: #7a5c14;
+  font-size: 13px;
+  line-height: 1.65;
+  margin-bottom: 16px;
+}
+
+.notice--info {
+  background: var(--accent-soft);
+  border-color: #c5d7fb;
+  color: #1c4bb8;
+}
+
+/* ── 表单区（打卡页）──────────────────────────────────── */
+
+.field { margin-bottom: 18px; }
+
+.field__label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.file-input {
+  display: block;
+  width: 100%;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-muted);
+}
+.file-input::file-selector-button {
+  font-family: inherit;
+  font-size: 14px;
+  margin-right: 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.file-input::file-selector-button:hover { background: var(--bg); }
+
+.hint {
+  margin: 8px 0 0;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.preview {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+}
+.preview__img {
+  display: block;
+  max-width: 100%;
+  max-height: 240px;
+  border-radius: 6px;
+}
+
+.textarea {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.7;
+  resize: vertical;
+}
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+
+.form-error {
+  margin-bottom: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fdecec;
+  border: 1px solid #f5b5b5;
+  color: #a32b2b;
+  font-size: 13px;
+}
+
+/* ── 回看：一条打卡记录的展示 ─────────────────────────── */
+
+.record {
+  margin: 4px 0 18px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+}
+
+.record__meta {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--text-faint);
+}
+
+.record__block + .record__block { margin-top: 16px; }
+
+.record__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.record__img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.record__text {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 14px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ── 空状态 ───────────────────────────────────────────── */
+
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-muted);
+}

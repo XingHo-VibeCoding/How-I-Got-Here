@@ -3,28 +3,28 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibe Coding 打卡</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: system-ui, "Microsoft YaHei", sans-serif;
-      background: #f6f7f9;
-      color: #1f2328;
-    }
-    main { text-align: center; padding: 48px 24px; }
-    h1 { font-size: 26px; font-weight: 500; margin: 0 0 14px; }
-    p { margin: 6px 0; font-size: 15px; line-height: 1.7; color: #57606a; }
-  </style>
+  <title>28 天 Vibe Coding 打卡闯关站</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main>
-    <h1>Vibe Coding 打卡</h1>
-    <p>这是 Day 2 的占位页。</p>
-    <p>网站功能从 Day 7 开始做，现在这里只证明一件事：文件已经进了仓库。</p>
-  </main>
+  <header class="site-header">
+    <div class="wrap site-header__inner">
+      <a class="brand" href="#/levels">28 天 Vibe Coding 打卡闯关站</a>
+      <span class="stage-tag">Day 7 · 步骤④ 回看与当天修改</span>
+    </div>
+  </header>
+
+  <main id="app" class="wrap"></main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      打卡内容与进度只保存在这台设备上，不需要登录，也不上传到服务器。
+    </div>
+  </footer>
+
+  <!-- 加载顺序有依赖：levels.js 提供 28 关数据，store.js 提供数据层，app.js 用这两者 -->
+  <script src="levels.js"></script>
+  <script src="store.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
