@@ -1,0 +1,23 @@
+{
+  "name": "Impeccable（前端设计工具集）",
+  "installedAt": 1790248554899,
+  "source": "marketplace",
+  "version": "2.0.0",
+  "skillId": "skill_2053082862415904768",
+  "examples_zh": [
+    "审查 SaaS 仪表盘的视觉层级",
+    "让落地页更适合海外自助注册用户",
+    "为移动端页面补充响应式布局和微交互",
+    "检查页面的可访问性、性能和设计一致性"
+  ],
+  "examples_en": [
+    "Review the visual hierarchy of this SaaS dashboard",
+    "Make this landing page better for global self-serve signup users",
+    "Add responsive layout and micro-interactions to the mobile page",
+    "Check this page for accessibility, performance, and design consistency"
+  ],
+  "iconSource": "https://openplatform-cdn.codebuddy.ai/public/operation-platform/skill-icons/skill_2053082862415904768/2dcd4a73485287e3.png",
+  "installedContentHash": "sha256:4981f9aee08f891a67ffe0a0ab54a28c2d2ee27d4554125dcd3dff7f79fe2c7b",
+  "iconLocalPath": "C:\\Users\\lenovo\\.workbuddy-ai\\skills\\impeccable\\_icon.png",
+  "iconDownloadedFrom": "https://openplatform-cdn.codebuddy.ai/public/operation-platform/skill-icons/skill_2053082862415904768/2dcd4a73485287e3.png"
+}

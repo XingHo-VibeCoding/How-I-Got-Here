@@ -173,6 +173,45 @@ t() {   # t "用例名" "实际值" "期望值"
 断言「按钮置灰数量 = 0」时，页面如果整个白屏，结果也是 0，会假通过。
 对策：同时断言一个正向条件（如「元素总数 = 1」）。
 
+**坑 7：断言计算样式时，别把 CSS 序列化的精度写死。**
+实测：断言进度条宽度 `fill.style.width === '3.571428571428571%'` 会 **FAIL**，
+实际读到 `'3.57143%'`。原因是 **CSSOM 把百分比序列化为 6 位有效数字**，
+这是浏览器规范行为，跟页面代码无关。
+
+判别口径：失败值与被期望值**数值相等**（`Math.abs(parseFloat(实际) - 期望) < 1e-4`）
+→ 是**断言写错**，不是页面错。
+
+对策：凡是断言 CSS 计算值/内联样式，**一律用数值容差，不用字符串全等**：
+
+```js
+// ❌ 错误：把浏览器序列化精度写死
+{ "expr": "document.querySelector('.bar').style.width", "expect": "3.571428571428571%" }
+
+// ✅ 正确：数值容差
+{ "expr": "Math.abs(parseFloat(document.querySelector('.bar').style.width) - 100/28) < 0.001", "expect": true }
+```
+
+同类要注意的属性：`width` / `height` / 百分比、`line-height`（可能序列化成 `normal` 或计算值）、
+`transform` 矩阵（会展开成 `matrix(...)` 六元组，不要按原字符串断言）、
+颜色（会被归一成 `rgb()`/`rgba()`，写断言前先实测一次拿到真实格式）。
+
+**坑 8：`pre` 里调项目自己的数据层 API 前，先确认方法真的存在。**
+实测：写清理逻辑时用了 `window.Store.deleteRecord(...)`，
+报 `TypeError: window.Store.deleteRecord is not a function`——
+因为该项目的数据层**刻意只暴露三个动作**（save / get / list），没有删除接口。
+
+对策：
+1. `pre` 报「不是函数」时，**先读该模块源码确认对外的真实接口**，不要凭直觉猜方法名；
+2. 需要「清空存储」而模块没提供删除接口时，**直连底层存储**（IndexedDB 的 `objectStore.clear()`），
+   绕过业务层——测试清理属于测试职责，不该为了测试给业务代码加方法：
+
+```js
+"pre": "(async () => { await new Promise((res, rej) => { const rq = indexedDB.open('库名', 1); rq.onsuccess = () => { const db = rq.result; const t = db.transaction('表名', 'readwrite'); t.objectStore('表名').clear(); t.oncomplete = () => { db.close(); res(); }; t.onerror = () => rej(t.error); }; rq.onerror = () => rej(rq.error); }); })()"
+```
+
+3. **写数据的任务单，收尾必须配一个清数据任务单**，否则测试数据会留在用户浏览器里，
+   下次打开页面看到「假的已完成记录」，污染用户真实使用。
+
 ## 截图
 
 - 路径 A：`--window-size=1180,1000 --screenshot="<路径>"`
@@ -200,6 +239,9 @@ rm -rf "$TMPD"
 - [ ] 涉及文件上传的，用 `setFile` 塞了真实文件，而不是跳过不测
 - [ ] 负向断言旁边配了正向断言，避免白屏假通过
 - [ ] 断言失败项已区分「页面错」还是「断言写错」
+- [ ] **断言 CSS 计算值/内联样式时用的是数值容差，没有把序列化精度写死（坑 7）**
+- [ ] **`pre` 里调用的模块方法名，已对照源码确认存在（坑 8）**
+- [ ] **写过数据的任务单，已配一个清数据任务单并执行完毕**
 - [ ] 同一组里出现「有的过有的不过」→ 优先怀疑 `waitFor` 条件太弱，而不是页面有 bug
 - [ ] 报错列表为空（路径 B 会自动报 JS 运行时报错）
 - [ ] 临时测试页、临时目录都已清理，`git status` 干净

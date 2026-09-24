@@ -1,27 +1,101 @@
 /* 28 天 Vibe Coding 打卡闯关站 —— 样式
- * Day 7 步骤①：只服务「三个页面的骨架」。
- * 配色走「安静的闯关」：已完成=绿、可打卡=蓝、未解锁=灰。不做等级/金币那套游戏规则。
+ *
+ * Day 8 板块②：界面优化。用 impeccable skill 的方法重做视觉。
+ *
+ * 设计方向（依据根目录 .impeccable.md 的 Design Context）：
+ *   基调 = 手账 / 纸张质感，克制。暖白纸底 + 墨绿主色 + 赭石点缀 + 衬线数字。
+ *   目标 = 「被鼓励，而不是被评判」：已完成要被看见，未解锁不该像废墟。
+ *
+ * 硬约束：不引入任何外部字体与资源，全部走系统字体栈（保持零请求）。
+ * 类名契约：与 app.js 一一对应，只增不改（见文件末尾「类名契约」一节）。
  */
 
+/* ══════════════════════════════════════════════════════════
+   一、设计令牌
+   ══════════════════════════════════════════════════════════
+   配色说明：刻意避开 skill 黑名单（纯黑/纯白、紫蓝渐变、霓虹）。
+   所有中性色都带一点暖调（偏向橙黄区间），让灰不死——
+   这是「纸」的感觉的来源。
+*/
+
 :root {
-  --bg:          #f6f7f9;
-  --surface:     #ffffff;
-  --border:      #e3e6ea;
-  --text:        #1f2328;
-  --text-muted:  #57606a;
-  --text-faint:  #9aa4af;
+  /* ── 纸与墨（中性色，暖调偏移）────────────────────── */
+  --paper:        #faf7f0;   /* 页面底色：米白纸 */
+  --paper-deep:   #f3eee3;   /* 下沉区块：比纸略深 */
+  --surface:      #fffdf8;   /* 卡片：暖白，不是纯白 */
+  --border:       #e5dece;   /* 常规描边 */
+  --border-soft:  #efe9dc;   /* 弱描边 / 分隔线 */
 
-  --accent:      #2f6feb;
-  --accent-dark: #2559c9;
-  --accent-soft: #eef3fe;
-  --accent-ring: rgba(47, 111, 235, 0.18);
+  --ink:          #2b2723;   /* 正文墨色（比纯黑柔） */
+  --ink-muted:    #6b6257;   /* 次级文字 */
+  --ink-faint:    #9c9285;   /* 三级文字 */
 
-  --done:        #12a06a;
-  --done-soft:   #eefaf4;
-  --done-border: #b7e6d2;
+  /* ── 主色：墨绿（书写的颜色）───────────────────────── */
+  --accent:       #2f6b4f;
+  --accent-deep:  #24523d;
+  --accent-soft:  #e8f0ea;
+  --accent-line:  #b9d0c1;
 
-  --radius:      12px;
-  --shadow:      0 1px 2px rgba(31, 35, 40, 0.06), 0 4px 12px rgba(31, 35, 40, 0.04);
+  /* ── 状态色 ────────────────────────────────────────── */
+  /* 已完成：沉稳的绿，与主色同族但更亮，表达「已写上」 */
+  --done:         #3f7d5c;
+  --done-soft:    #eaf2ec;
+  --done-line:    #bed7c6;
+
+  /* 未解锁：不再用冷灰，改用暖的「纸背色」+ 明确的可读文字 */
+  --locked-bg:    #f0ebdf;
+  --locked-line:  #e2dacb;
+  --locked-ink:   #a9a094;
+
+  /* ── 点缀：赭石（用于「当前这一关」的强调）────────── */
+  --ochre:        #b07d3f;
+  --ochre-soft:   #f7efe1;
+  --ochre-line:   #e0c9a3;
+
+  /* ── 警示（骨架阶段的诚实标注）────────────────────── */
+  --warn-bg:      #fdf6e6;
+  --warn-line:    #ecdcb4;
+  --warn-ink:     #7d6234;
+
+  --danger-bg:    #fbeeee;
+  --danger-line:  #eec4c4;
+  --danger-ink:   #94393a;
+
+  /* ── 尺度：4pt 基准 ────────────────────────────────── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* ── 字号：5 级，级差拉开（不再 14/15/16 挤在一起）──── */
+  --text-xs:   0.75rem;    /* 12px 标签 */
+  --text-sm:   0.8125rem;  /* 13px 元信息 */
+  --text-base: 0.9375rem;  /* 15px 正文 */
+  --text-lg:   1.25rem;    /* 20px 小标题 */
+  --text-xl:   2rem;       /* 32px 页面主标题 */
+  --text-num:  1.375rem;   /* 22px 格子数字 */
+
+  /* ── 字体族（全系统字体，零外部请求）───────────────── */
+  /* 正文：优先用中文友好的无衬线，回落到系统 UI 字体 */
+  --font-body: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+               "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  /* 数字与标题：衬线，给「本子上手写的编号」的感觉 */
+  --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino,
+                Georgia, "Songti SC", "SimSun", serif;
+
+  /* ── 缓动：指数曲线，不用 ease、不用回弹 ───────────── */
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --ease-out-expo:  cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ── 圆角与投影：纸张不用大圆角，投影极轻 ─────────── */
+  --radius-sm: 6px;
+  --radius:    10px;
+  /* 两层极淡投影，模拟纸张略微离桌，不是「浮空卡片」 */
+  --lift-1: 0 1px 1px rgba(64, 52, 32, 0.04);
+  --lift-2: 0 2px 6px rgba(64, 52, 32, 0.05);
 }
 
 * { box-sizing: border-box; }
@@ -31,22 +105,44 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: var(--bg);
-  color: var(--text);
-  font-family: system-ui, -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-  font-size: 15px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
   line-height: 1.7;
+  font-kerning: normal;
   -webkit-font-smoothing: antialiased;
 }
 
-.wrap {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 0 20px;
+/* 纸的质感：极淡的横向规则纹理，暗示「本子上的横线」。
+   用 repeating-linear-gradient 纯 CSS 实现，不加载任何图片。 */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    rgba(107, 98, 87, 0.045) 31px,
+    rgba(107, 98, 87, 0.045) 32px
+  );
 }
 
-/* ── 页头 / 页脚 ───────────────────────────────────────── */
+body > * { position: relative; z-index: 1; }
+
+.wrap {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 var(--space-xl);
+}
+
+/* ══════════════════════════════════════════════════════════
+   二、页头 / 页脚
+   ══════════════════════════════════════════════════════════ */
 
 .site-header {
   background: var(--surface);
@@ -54,368 +150,602 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
+  /* 头部下方一条极淡的墨绿细线，把「本子的书脊」点出来 */
+  box-shadow: inset 0 -2px 0 -1px var(--accent-line);
 }
 
 .site-header__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  height: 56px;
+  gap: var(--space-md);
+  height: 60px;
 }
 
 .brand {
-  font-size: 15px;
+  font-family: var(--font-serif);
+  font-size: 1.0625rem;
   font-weight: 600;
-  color: var(--text);
+  letter-spacing: 0.01em;
+  color: var(--ink);
   text-decoration: none;
 }
+.brand:hover { color: var(--accent); }
 
 .stage-tag {
   flex: none;
-  font-size: 12px;
-  color: var(--text-muted);
-  background: var(--bg);
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  background: var(--paper-deep);
   border: 1px solid var(--border);
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: 3px var(--space-md);
+  letter-spacing: 0.01em;
 }
 
 .site-footer {
   margin-top: auto;
-  padding: 20px 0 28px;
-  font-size: 12px;
-  color: var(--text-faint);
+  padding: var(--space-xl) 0 var(--space-2xl);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  border-top: 1px solid var(--border-soft);
 }
 
-#app { flex: 1; padding-top: 24px; padding-bottom: 40px; }
+#app { flex: 1; padding-top: var(--space-2xl); padding-bottom: var(--space-3xl); }
 
-/* ── 通用文字 ─────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   三、通用文字
+   ══════════════════════════════════════════════════════════
+   层次靠「字号 + 字重 + 颜色 + 留白」四个维度同时拉开，
+   不只靠大小——这是 skill 强调的 hierarchy through multiple dimensions。
+*/
 
-h1 { font-size: 20px; font-weight: 600; margin: 0 0 6px; }
-h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
-p  { margin: 0 0 10px; }
+h1 {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin: 0 0 var(--space-sm);
+  color: var(--ink);
+}
 
-.muted  { color: var(--text-muted); }
-.faint  { color: var(--text-faint); }
-.small  { font-size: 13px; }
+h2 {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.5;
+  letter-spacing: 0.06em;
+  margin: 0 0 var(--space-md);
+  color: var(--ink-muted);
+}
+
+p { margin: 0 0 var(--space-md); }
+
+.muted { color: var(--ink-muted); }
+.faint { color: var(--ink-faint); }
+.small { font-size: var(--text-sm); line-height: 1.65; }
 
 .back-link {
   display: inline-block;
-  margin-bottom: 14px;
-  font-size: 13px;
-  color: var(--text-muted);
+  margin-bottom: var(--space-lg);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
   text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: color 150ms var(--ease-out-quart),
+              border-color 150ms var(--ease-out-quart);
 }
-.back-link:hover { color: var(--accent); }
+.back-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent-line);
+}
 
-/* ── 顶部进度条（只读展示）──────────────────────────── */
+/* 焦点环：键盘用户必须看得见（无障碍要求） */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* ══════════════════════════════════════════════════════════
+   四、进度（本页面的主角）
+   ══════════════════════════════════════════════════════════
+   改前问题：进度条存在感太弱，0/28 时几乎没有信息量。
+   现在做法：把「已完成数」做成大号衬线数字当视觉锚点，
+   进度条做粗、做长，成为一条「已经走过的路」。
+*/
 
 .progress {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
+  align-items: center;
+  gap: var(--space-lg);
+  margin: 0 0 var(--space-2xl);
+  padding: var(--space-lg) var(--space-xl);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--lift-2);
 }
 
-.progress__count { font-size: 13px; color: var(--text-muted); }
-.progress__count b { color: var(--done); font-size: 16px; }
+.progress__count {
+  flex: none;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+.progress__count b {
+  font-family: var(--font-serif);
+  color: var(--accent);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1;
+  margin-right: 2px;
+  /* 表格数字：让 1 和 11 宽度一致，数字跳动时不会抖 */
+  font-variant-numeric: tabular-nums;
+}
 
 .progress__bar {
   flex: 1;
-  height: 6px;
-  max-width: 320px;
-  background: #e9ecef;
+  height: 10px;
+  background: var(--paper-deep);
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
   overflow: hidden;
 }
+
 .progress__fill {
   height: 100%;
-  background: var(--done);
+  background: linear-gradient(to right, var(--done) 0%, #4f8f6b 100%);
   border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 500ms var(--ease-out-expo);
 }
 
-/* ── 关卡列表 ─────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   五、关卡列表
+   ══════════════════════════════════════════════════════════
+   改前最大问题：27 个灰格子像一片废墟。
+   现在做法：三种状态各给明确的「语义」——
+     已完成 = 墨绿实心感，最有分量
+     可打卡 = 赭石描边 + 微微抬起，是唯一的行动点
+     未解锁 = 暖纸背色 + 数字仍清晰可读（不是消失，是「在等你」）
+*/
 
-.week { margin-bottom: 26px; }
+.week { margin-bottom: var(--space-2xl); }
 
 .week__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin: 0 0 10px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-muted);
+  margin: 0 0 var(--space-md);
+  padding-bottom: var(--space-sm);
+  border-bottom: 1px solid var(--border-soft);
+  letter-spacing: 0.02em;
 }
 
 .level-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: var(--space-md);
 }
 
 .cell {
   display: block;
-  padding: 12px 6px;
+  padding: var(--space-lg) var(--space-sm);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
   text-align: center;
   text-decoration: none;
-  color: var(--text);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  color: var(--ink);
+  box-shadow: var(--lift-1);
+  transition: transform 200ms var(--ease-out-quart),
+              box-shadow 200ms var(--ease-out-quart),
+              border-color 200ms var(--ease-out-quart);
 }
-.cell:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+.cell:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--lift-2);
+  border-color: var(--accent-line);
+}
 
-.cell__num { display: block; font-size: 18px; font-weight: 600; line-height: 1.3; }
-.cell__tag { display: block; font-size: 11px; color: var(--text-faint); margin-top: 2px; }
+/* 数字用衬线 + 表格数字：像本子上的编号 */
+.cell__num {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: var(--text-num);
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+.cell__tag {
+  display: block;
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  margin-top: var(--space-xs);
+  letter-spacing: 0.02em;
+}
 
+/* ── 已完成：最实的一种，绿底绿字 ─────────────────── */
 .cell.is-done {
   background: var(--done-soft);
-  border-color: var(--done-border);
+  border-color: var(--done-line);
 }
 .cell.is-done .cell__num { color: var(--done); }
 .cell.is-done .cell__tag { color: var(--done); }
 
+/* ── 可打卡：唯一的行动点，赭石强调 + 抬起 ─────────── */
 .cell.is-current {
-  background: var(--accent-soft);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px var(--accent-ring);
+  background: var(--ochre-soft);
+  border-color: var(--ochre);
+  box-shadow: 0 3px 10px rgba(176, 125, 63, 0.14);
 }
-.cell.is-current .cell__num { color: var(--accent); }
-.cell.is-current .cell__tag { color: var(--accent); }
+.cell.is-current .cell__num { color: var(--ochre); }
+.cell.is-current .cell__tag {
+  color: var(--ochre);
+  font-weight: 600;
+}
 
+/* ── 未解锁：暖纸背，数字仍可读（不是废墟，是「在等你」）── */
 .cell.is-locked {
-  background: #f1f3f5;
-  border-color: #e8eaed;
+  background: var(--locked-bg);
+  border-color: var(--locked-line);
+  box-shadow: none;
 }
-.cell.is-locked .cell__num { color: var(--text-faint); font-weight: 500; }
+.cell.is-locked .cell__num { color: var(--locked-ink); font-weight: 500; }
+.cell.is-locked .cell__tag { color: var(--locked-ink); }
+.cell.is-locked:hover {
+  transform: translateY(-1px);
+  border-color: var(--border);
+}
 
-/* ── 卡片 / 详情页 / 打卡页 ───────────────────────────── */
+/* 入场：逐格淡入上浮，用 --i 做 stagger，总数封顶在 400ms 内 */
+@keyframes cell-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.cell {
+  animation: cell-in 420ms var(--ease-out-quart) backwards;
+  animation-delay: calc(min(var(--i, 0), 8) * 45ms);
+}
+
+/* ══════════════════════════════════════════════════════════
+   六、面板 / 详情页 / 打卡页
+   ══════════════════════════════════════════════════════════ */
 
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 22px;
-  box-shadow: var(--shadow);
+  border-radius: var(--radius);
+  padding: var(--space-xl);
+  box-shadow: var(--lift-2);
 }
 
-.panel + .panel { margin-top: 16px; }
+.panel + .panel { margin-top: var(--space-lg); }
 
 .panel__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--space-md);
   flex-wrap: wrap;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-xs);
 }
 
 .badge {
   flex: none;
-  font-size: 12px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
   border-radius: 999px;
-  padding: 2px 10px;
+  padding: 3px var(--space-md);
   border: 1px solid transparent;
 }
-.badge--done    { background: var(--done-soft);   color: var(--done);        border-color: var(--done-border); }
-.badge--current { background: var(--accent-soft); color: var(--accent);      border-color: #c5d7fb; }
-.badge--locked  { background: #f1f3f5;            color: var(--text-faint);  border-color: #e8eaed; }
+.badge--done    { background: var(--done-soft);   color: var(--done);      border-color: var(--done-line); }
+.badge--current { background: var(--ochre-soft);  color: var(--ochre);     border-color: var(--ochre-line); }
+.badge--locked  { background: var(--locked-bg);   color: var(--ink-faint); border-color: var(--locked-line); }
 
+/* 概述块：用左侧一道墨绿细线标注，替代「卡片里再套卡片」 */
 .summary {
-  margin: 14px 0 18px;
-  padding: 14px 16px;
-  background: var(--bg);
-  border-radius: 10px;
-  color: var(--text-muted);
-  font-size: 14px;
+  margin: var(--space-lg) 0 var(--space-xl);
+  padding: var(--space-xs) 0 var(--space-xs) var(--space-lg);
+  border-left: 3px solid var(--accent-line);
+  color: var(--ink-muted);
+  font-size: var(--text-base);
+  line-height: 1.8;
 }
 
-/* ── 按钮 ─────────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   七、按钮
+   ══════════════════════════════════════════════════════════ */
 
-.actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
 
 .btn {
   display: inline-block;
-  padding: 10px 20px;
+  padding: 11px var(--space-xl);
   border: 1px solid var(--accent);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--accent);
   color: #fff;
   font-family: inherit;
-  font-size: 15px;
+  font-size: var(--text-base);
+  font-weight: 500;
+  letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
-  transition: background 0.15s ease;
+  transition: background 150ms var(--ease-out-quart),
+              border-color 150ms var(--ease-out-quart),
+              transform 100ms var(--ease-out-quart);
 }
-.btn:hover { background: var(--accent-dark); }
+.btn:hover { background: var(--accent-deep); border-color: var(--accent-deep); }
+.btn:active { transform: translateY(1px); }
 
 .btn--ghost {
   background: transparent;
   color: var(--accent);
 }
-.btn--ghost:hover { background: var(--accent-soft); }
+.btn--ghost:hover {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
 
 /* 置灰：未解锁的关、以及尚未接入的功能 */
 .btn.is-disabled,
 .btn:disabled {
-  background: #e9ecef;
-  border-color: #e9ecef;
-  color: var(--text-faint);
+  background: var(--locked-bg);
+  border-color: var(--locked-line);
+  color: var(--ink-faint);
   cursor: not-allowed;
   pointer-events: none;
+  transform: none;
 }
 
-/* ── 提示条（骨架阶段的诚实标注）──────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   八、提示条（骨架阶段的诚实标注）
+   ══════════════════════════════════════════════════════════ */
 
 .notice {
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #fff8e6;
-  border: 1px solid #f0dca8;
-  color: #7a5c14;
-  font-size: 13px;
-  line-height: 1.65;
-  margin-bottom: 16px;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-sm);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-line);
+  color: var(--warn-ink);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+  margin-bottom: var(--space-xl);
 }
 
 .notice--info {
   background: var(--accent-soft);
-  border-color: #c5d7fb;
-  color: #1c4bb8;
+  border-color: var(--accent-line);
+  color: var(--accent-deep);
 }
 
-/* ── 表单区（打卡页）──────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   九、表单区（打卡页）
+   ══════════════════════════════════════════════════════════ */
 
-.field { margin-bottom: 18px; }
+.field { margin-bottom: var(--space-xl); }
 
 .field__label {
   display: block;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-sm);
 }
 
 .file-input {
   display: block;
   width: 100%;
   font-family: inherit;
-  font-size: 14px;
-  color: var(--text-muted);
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
 }
 .file-input::file-selector-button {
   font-family: inherit;
-  font-size: 14px;
-  margin-right: 12px;
-  padding: 8px 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  margin-right: var(--space-md);
+  padding: 9px var(--space-lg);
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   cursor: pointer;
+  transition: background 150ms var(--ease-out-quart),
+              border-color 150ms var(--ease-out-quart);
 }
-.file-input::file-selector-button:hover { background: var(--bg); }
+.file-input::file-selector-button:hover {
+  background: var(--paper-deep);
+  border-color: var(--accent-line);
+}
 
 .hint {
-  margin: 8px 0 0;
-  font-size: 13px;
-  color: var(--text-faint);
+  margin: var(--space-sm) 0 0;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--ink-faint);
 }
 
 .preview {
-  margin-top: 12px;
-  padding: 10px;
+  margin-top: var(--space-md);
+  padding: var(--space-md);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--bg);
+  border-radius: var(--radius-sm);
+  background: var(--paper-deep);
 }
 .preview__img {
   display: block;
   max-width: 100%;
   max-height: 240px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--lift-1);
 }
 
 .textarea {
   display: block;
   width: 100%;
-  padding: 12px 14px;
+  padding: var(--space-md) var(--space-lg);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--radius-sm);
   background: var(--surface);
-  color: var(--text);
+  color: var(--ink);
   font-family: inherit;
-  font-size: 15px;
-  line-height: 1.7;
+  font-size: var(--text-base);
+  line-height: 1.75;
   resize: vertical;
+  transition: border-color 150ms var(--ease-out-quart),
+              box-shadow 150ms var(--ease-out-quart);
 }
 .textarea:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-ring);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
+.textarea::placeholder { color: var(--ink-faint); }
 
 .form-error {
-  margin-bottom: 14px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #fdecec;
-  border: 1px solid #f5b5b5;
-  color: #a32b2b;
-  font-size: 13px;
+  margin-bottom: var(--space-lg);
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-sm);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-line);
+  color: var(--danger-ink);
+  font-size: var(--text-sm);
+  line-height: 1.7;
 }
 
-/* ── 回看：一条打卡记录的展示 ─────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   十、回看：一条打卡记录
+   ══════════════════════════════════════════════════════════ */
 
 .record {
-  margin: 4px 0 18px;
-  padding: 16px;
+  margin: var(--space-xs) 0 var(--space-xl);
+  padding: var(--space-lg);
   border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--bg);
+  border-radius: var(--radius);
+  background: var(--paper-deep);
 }
 
 .record__meta {
-  margin: 0 0 14px;
-  font-size: 13px;
-  color: var(--text-faint);
+  margin: 0 0 var(--space-lg);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
-.record__block + .record__block { margin-top: 16px; }
+.record__block + .record__block { margin-top: var(--space-lg); }
 
 .record__label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 8px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink-muted);
+  letter-spacing: 0.02em;
+  margin-bottom: var(--space-sm);
 }
 
 .record__img {
   display: block;
   max-width: 100%;
   max-height: 320px;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
   background: var(--surface);
+  box-shadow: var(--lift-2);
 }
 
+/* 文字记录：做成「本子上的一段话」，行高与纸纹对齐 */
 .record__text {
-  padding: 12px 14px;
-  border-radius: 8px;
+  padding: var(--space-md) var(--space-lg);
+  border-radius: var(--radius-sm);
   background: var(--surface);
   border: 1px solid var(--border);
-  font-size: 14px;
-  line-height: 1.75;
+  font-size: var(--text-base);
+  line-height: 1.85;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
-/* ── 空状态 ───────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════
+   十一、空状态
+   ══════════════════════════════════════════════════════════ */
 
 .empty {
-  padding: 40px 20px;
+  padding: var(--space-3xl) var(--space-xl);
   text-align: center;
-  color: var(--text-muted);
+  color: var(--ink-muted);
+  font-size: var(--text-base);
 }
+
+/* ══════════════════════════════════════════════════════════
+   十二、动效降级（无障碍，不可省略）
+   ══════════════════════════════════════════════════════════
+   skill 明确：约 35% 的 40 岁以上成人受前庭功能障碍影响。
+   保留功能性动效（进度条、焦点环），去掉所有位移与淡入。
+*/
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .cell { animation: none; }
+  .cell:hover { transform: none; }
+}
+
+/* ══════════════════════════════════════════════════════════
+   十三、窄屏适配
+   ══════════════════════════════════════════════════════════ */
+
+@media (max-width: 560px) {
+  .wrap { padding: 0 var(--space-lg); }
+
+  .progress {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+    padding: var(--space-lg);
+  }
+
+  .level-grid {
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+    gap: var(--space-sm);
+  }
+  .cell { padding: var(--space-md) var(--space-xs); }
+  .cell__num { font-size: 1.25rem; }
+  .cell__tag { font-size: 0.6875rem; }
+
+  .btn { width: 100%; text-align: center; }
+
+  h1 { font-size: 1.625rem; }
+
+  .site-header__inner { height: 56px; }
+  .stage-tag { font-size: 0.6875rem; padding: 2px var(--space-sm); }
+}
+
+/* ══════════════════════════════════════════════════════════
+   类名契约（供后续改动核对，勿删）
+   ══════════════════════════════════════════════════════════
+   以下类名被 app.js 依赖，本次改造全部保留、语义未变：
+     actions  back-link  badge  badge--done/current/locked  btn  btn--ghost
+     cell  cell__num  cell__tag  is-done/is-current/is-locked
+     empty  faint  field  field__label  form-error  hint
+     level-grid  muted  notice  notice--info  panel  panel__head
+     preview  preview__img  progress  progress__bar  progress__count
+     progress__fill  record  record__block  record__label  record__meta
+     record__img  record__text  small  summary  week  week__label
+     site-header  site-header__inner  brand  stage-tag  site-footer  wrap
+   本文件新增的纯装饰类（app.js 不使用，删除无副作用）：
+     （无——本次未新增类名，仅重写既有类的样式）
+   本次新增的变量：--i（用于格子入场 stagger，由 CSS 兜底，缺省为 0）
+*/
