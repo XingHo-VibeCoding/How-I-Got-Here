@@ -2,6 +2,16 @@
  *
  * Day 8 板块②：界面优化。用 impeccable skill 的方法重做视觉。
  *
+ * Day 9 板块③：先用设计规则做前端审查，再修。只调颜色值与间距，不动结构与类名。
+ *   审查（真实浏览器实测 + WCAG 逐组核算）查出四组令牌在暖白底上不达标：
+ *     --ink-faint  2.86~3.01:1（页脚 / 提示小字 / 记录元信息 / placeholder）
+ *     --locked-ink 2.17:1（首页 27 个未解锁格子的数字，全站最低）
+ *     --ochre      3.14:1（唯一的行动点「可打卡」）
+ *     --done       4.28:1（差 0.22 到线）
+ *   另修：.btn 在 <a> 与 <button> 上高度不一致（49.5px vs 43px，根因是没声明
+ *   line-height）；文件选择器只有 36px；三处 padding 脱离 4pt 网格；
+ *   进度条渐变里残留硬编码色。
+ *
  * 设计方向（依据根目录 .impeccable.md 的 Design Context）：
  *   基调 = 手账 / 纸张质感，克制。暖白纸底 + 墨绿主色 + 赭石点缀 + 衬线数字。
  *   目标 = 「被鼓励，而不是被评判」：已完成要被看见，未解锁不该像废墟。
@@ -23,12 +33,17 @@
   --paper:        #faf7f0;   /* 页面底色：米白纸 */
   --paper-deep:   #f3eee3;   /* 下沉区块：比纸略深 */
   --surface:      #fffdf8;   /* 卡片：暖白，不是纯白 */
-  --border:       #e5dece;   /* 常规描边 */
+  --border:       #e5dece;   /* 常规描边（装饰性，不承担「识别控件」的职责） */
   --border-soft:  #efe9dc;   /* 弱描边 / 分隔线 */
+  /* Day 9：输入控件边框。输入框与所在面板同色，边框是唯一视觉边界，
+     按 WCAG 1.4.11 需 ≥3:1；--border 实测仅 1.32:1，故单独一档。 */
+  --border-input: #9c9286;   /* 输入框 / 文本域边框（对 --surface 为 3.01:1） */
 
   --ink:          #2b2723;   /* 正文墨色（比纯黑柔） */
   --ink-muted:    #6b6257;   /* 次级文字 */
-  --ink-faint:    #9c9285;   /* 三级文字 */
+  /* Day 9：原 #9c9285 在暖白底上只有 2.86~3.01:1，正文级文字需 4.5:1。
+     改为同色相下「刚过线的最浅解」，尽量保住原本的「淡」。 */
+  --ink-faint:    #756b5f;   /* 三级文字（4.51~5.13:1） */
 
   /* ── 主色：墨绿（书写的颜色）───────────────────────── */
   --accent:       #2f6b4f;
@@ -38,17 +53,25 @@
 
   /* ── 状态色 ────────────────────────────────────────── */
   /* 已完成：沉稳的绿，与主色同族但更亮，表达「已写上」 */
-  --done:         #3f7d5c;
+  /* Day 9：#3f7d5c 在 --done-soft 上为 4.28:1，差 0.22 到线，微调至 4.52:1。 */
+  --done:         #3d7959;
   --done-soft:    #eaf2ec;
   --done-line:    #bed7c6;
+  /* Day 9：进度条渐变的亮端。原本硬编码在 .progress__fill 里，提为令牌统一管理。 */
+  --done-bright:  #4f8f6b;
 
   /* 未解锁：不再用冷灰，改用暖的「纸背色」+ 明确的可读文字 */
   --locked-bg:    #f0ebdf;
   --locked-line:  #e2dacb;
-  --locked-ink:   #a9a094;
+  /* Day 9：原 #a9a094 在 --locked-bg 上仅 2.17:1（全站最低），
+     而它承担的是首页面积最大的内容——27 个未解锁格子的数字。
+     改为同色相最浅达标解。 */
+  --locked-ink:   #73695c;   /* 对 --locked-bg 为 4.52:1 */
 
   /* ── 点缀：赭石（用于「当前这一关」的强调）────────── */
-  --ochre:        #b07d3f;
+  /* Day 9：原 #b07d3f 在 --ochre-soft 上仅 3.14:1。
+     它标记的是全站唯一的行动点，必须一眼可读。 */
+  --ochre:        #8f6533;   /* 对 --ochre-soft 为 4.51:1 */
   --ochre-soft:   #f7efe1;
   --ochre-line:   #e0c9a3;
 
@@ -172,17 +195,6 @@ body > * { position: relative; z-index: 1; }
 }
 .brand:hover { color: var(--accent); }
 
-.stage-tag {
-  flex: none;
-  font-size: var(--text-xs);
-  color: var(--ink-muted);
-  background: var(--paper-deep);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 3px var(--space-md);
-  letter-spacing: 0.01em;
-}
-
 .site-footer {
   margin-top: auto;
   padding: var(--space-xl) 0 var(--space-2xl);
@@ -296,7 +308,8 @@ p { margin: 0 0 var(--space-md); }
 
 .progress__fill {
   height: 100%;
-  background: linear-gradient(to right, var(--done) 0%, #4f8f6b 100%);
+  /* Day 9：亮端原为硬编码 #4f8f6b，提为 --done-bright，避免同族色两处定义。 */
+  background: linear-gradient(to right, var(--done) 0%, var(--done-bright) 100%);
   border-radius: 999px;
   transition: width 500ms var(--ease-out-expo);
 }
@@ -378,7 +391,8 @@ p { margin: 0 0 var(--space-md); }
 .cell.is-current {
   background: var(--ochre-soft);
   border-color: var(--ochre);
-  box-shadow: 0 3px 10px rgba(176, 125, 63, 0.14);
+  /* Day 9：跟随 --ochre 的新值（原 rgba 写的是旧赭石的 RGB）。 */
+  box-shadow: 0 3px 10px rgba(143, 101, 51, 0.16);
 }
 .cell.is-current .cell__num { color: var(--ochre); }
 .cell.is-current .cell__tag {
@@ -438,12 +452,12 @@ p { margin: 0 0 var(--space-md); }
   font-weight: 600;
   letter-spacing: 0.03em;
   border-radius: 999px;
-  padding: 3px var(--space-md);
+  padding: var(--space-xs) var(--space-md);
   border: 1px solid transparent;
 }
 .badge--done    { background: var(--done-soft);   color: var(--done);      border-color: var(--done-line); }
 .badge--current { background: var(--ochre-soft);  color: var(--ochre);     border-color: var(--ochre-line); }
-.badge--locked  { background: var(--locked-bg);   color: var(--ink-faint); border-color: var(--locked-line); }
+.badge--locked  { background: var(--locked-bg);   color: var(--locked-ink); border-color: var(--locked-line); }
 
 /* 概述块：用左侧一道墨绿细线标注，替代「卡片里再套卡片」 */
 .summary {
@@ -468,7 +482,7 @@ p { margin: 0 0 var(--space-md); }
 
 .btn {
   display: inline-block;
-  padding: 11px var(--space-xl);
+  padding: var(--space-md) var(--space-xl);
   border: 1px solid var(--accent);
   border-radius: var(--radius-sm);
   background: var(--accent);
@@ -476,6 +490,10 @@ p { margin: 0 0 var(--space-md); }
   font-family: inherit;
   font-size: var(--text-base);
   font-weight: 500;
+  /* Day 9：必须显式声明。浏览器给 <button> 的默认 line-height 是 normal，
+     而 <a> 会继承 body 的 1.7——同一个 .btn 类因此长出两个高度
+     （实测 <a> 49.5px、<button> 43px，后者还低于 44px 触控下限）。 */
+  line-height: 1.6;
   letter-spacing: 0.01em;
   text-decoration: none;
   cursor: pointer;
@@ -500,7 +518,7 @@ p { margin: 0 0 var(--space-md); }
 .btn:disabled {
   background: var(--locked-bg);
   border-color: var(--locked-line);
-  color: var(--ink-faint);
+  color: var(--locked-ink);
   cursor: not-allowed;
   pointer-events: none;
   transform: none;
@@ -554,7 +572,10 @@ p { margin: 0 0 var(--space-md); }
   font-size: var(--text-sm);
   font-weight: 500;
   margin-right: var(--space-md);
-  padding: 9px var(--space-lg);
+  /* Day 9：原 9px + line-height:normal，实测整个输入框只有 36px 高，
+     低于 44px 触控下限。padding 对齐 4pt 网格并显式声明行高后约 46px。 */
+  padding: var(--space-md) var(--space-lg);
+  line-height: 1.5;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   background: var(--surface);
@@ -594,7 +615,9 @@ p { margin: 0 0 var(--space-md); }
   display: block;
   width: 100%;
   padding: var(--space-md) var(--space-lg);
-  border: 1px solid var(--border);
+  /* Day 9：文本域与 .panel 同色（都是 --surface），边框是它唯一的视觉边界，
+     原 --border 只有 1.32:1，用户看不出「这里可以输入」。改用 --border-input。 */
+  border: 1px solid var(--border-input);
   border-radius: var(--radius-sm);
   background: var(--surface);
   color: var(--ink);
@@ -730,7 +753,6 @@ p { margin: 0 0 var(--space-md); }
   h1 { font-size: 1.625rem; }
 
   .site-header__inner { height: 56px; }
-  .stage-tag { font-size: 0.6875rem; padding: 2px var(--space-sm); }
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -744,8 +766,14 @@ p { margin: 0 0 var(--space-md); }
      preview  preview__img  progress  progress__bar  progress__count
      progress__fill  record  record__block  record__label  record__meta
      record__img  record__text  small  summary  week  week__label
-     site-header  site-header__inner  brand  stage-tag  site-footer  wrap
+     site-header  site-header__inner  brand  site-footer  wrap
    本文件新增的纯装饰类（app.js 不使用，删除无副作用）：
      （无——本次未新增类名，仅重写既有类的样式）
    本次新增的变量：--i（用于格子入场 stagger，由 CSS 兜底，缺省为 0）
+   Day 9 板块③ 新增的变量（均为颜色令牌，不影响类名契约）：
+     --border-input  输入控件边框专用色（装饰性描边 --border 仅 1.32:1，不达 3:1）
+     --done-bright   进度条渐变的亮端（原为 .progress__fill 里的硬编码 #4f8f6b）
+   Day 9 移除的类名：stage-tag
+     页头那个「Day 7 · 步骤④ 回看与当天修改」的胶囊标签已过时，
+     HTML 元素与对应样式一并删除；app.js 从未使用它，删除无副作用。
 */

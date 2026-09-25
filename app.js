@@ -306,8 +306,6 @@
     frag.appendChild(el('h1', null, '闯关地图'));
     frag.appendChild(el('p', 'muted small', '每天打卡 = 通过当天那一关。任何时刻只有编号最小的未完成关卡可以打卡，补关也按这个顺序。'));
 
-    frag.appendChild(buildNotice('Day 7 · 步骤④：已完成的关卡可以点进去回看当时留下的截图和文字；完成当天还能改，过了当天 24:00（北京时间）就只读。'));
-
     frag.appendChild(buildProgressBar());
 
     WEEKS.forEach(function (w) {
