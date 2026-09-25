@@ -324,6 +324,250 @@
     return frag;
   }
 
+  /* ── 关卡落点的果冻交互（Day 10）──────────────────────
+     模仿 React Bits 的 Jelly Radio：指针落到某一格时，那一格先变宽、再变高
+     （jelly），同一行的邻居逐格收缩让位（stagger），到位时带一点过冲（bounce）；
+     按下再额外顶一下。跳转不加延迟，所以点下去还是即时响应。
+
+     为什么手写弹簧、而不是引那个库：本项目不引框架、不引外部依赖，
+     且要保持零外部请求（.impeccable.md 的依赖约束、TECH_DESIGN.md 决策①）。
+     弹簧用 requestAnimationFrame 逐帧积分；位移一律走 transform，
+     不碰 width / gap，所以网格不会重新排版，窄屏也不会溢出。
+
+     未解锁的格子故意做成「缩进去」而不是「撑开来」——
+     它本来就点不进去，用反向反馈说明「这一格还没到时候」，不鼓励去点。
+  */
+
+  var JELLY = {
+    swell:     0.16,   // 目标格放大比例
+    shrink:    0.04,   // 同行邻居收缩比例
+    barge:     5,      // 同行邻居额外让位距离（px）
+    stagger:   22,     // 每远一格，延迟多少毫秒启动
+    jelly:     0.35,   // 先宽后高的比例：0 等比放大，越大越「抻」
+    bounce:    0.25,   // 过冲量：0 到位即停
+    stiffness: 580,    // 弹簧硬度
+    press:     0.05,   // 按下时额外顶起多少
+    weakScale: 0.45,   // 未解锁格子带动的涟漪强度系数
+    lagMs:     45      // 纵向跟随时滞，用来做「先宽后高」
+  };
+
+  var jelly = (function () {
+    var gridEl = null;
+    var cells = [];
+    var springs = [];
+    var rows = [];     // 视觉行：[[0..7], [8..15], ...]
+    var rowOf = [];    // 每个格子属于第几行
+    var rafId = 0;
+    var lastTs = 0;
+    var hoverIdx = -1;
+
+    function reduceMotion() {
+      return !!(window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    /* 按 offsetTop 分行——网格是 auto-fill，列数随窗口变，不能写死每行几个 */
+    function measure() {
+      rows = [];
+      rowOf = [];
+      var byTop = {};
+      cells.forEach(function (cell, i) {
+        var top = Math.round(cell.offsetTop);
+        if (byTop[top] === undefined) {
+          byTop[top] = rows.length;
+          rows.push([]);
+        }
+        rowOf[i] = byTop[top];
+        rows[byTop[top]].push(i);
+      });
+    }
+
+    function restAll() {
+      for (var i = 0; i < cells.length; i++) {
+        cells[i].style.transform = '';
+        springs[i].d = 0;
+        springs[i].v = 0;
+        springs[i].lag = 0;
+      }
+    }
+
+    function apply(i, s) {
+      if (s.d === 0 && s.v === 0 && s.lag === 0) {
+        if (cells[i].style.transform) cells[i].style.transform = '';
+        return;
+      }
+
+      // 先宽后高：横向吃满弹簧当前值，纵向吃的是滞后的那一份
+      var sx = 1 + s.d * (1 + JELLY.jelly * 0.5);
+      var sy = 1 + s.lag * (1 - JELLY.jelly * 0.5);
+
+      var tx = 0;
+      if (s.dir) {
+        var prog = Math.min(1, Math.abs(s.d) / JELLY.shrink);
+        tx = s.dir * JELLY.barge * prog;
+      }
+
+      cells[i].style.transform =
+        'translateX(' + tx.toFixed(2) + 'px) scale(' +
+        sx.toFixed(4) + ',' + sy.toFixed(4) + ')';
+    }
+
+    /* 一帧的积分：标准阻尼弹簧 + 纵向低通 */
+    function integrate(dt, now) {
+      var k = JELLY.stiffness;
+      var c = 2 * (1 - JELLY.bounce) * Math.sqrt(k);
+      var tau = JELLY.lagMs / 1000;
+      var moving = false;
+
+      for (var i = 0; i < springs.length; i++) {
+        var s = springs[i];
+        var target = now < s.delayUntil ? 0 : s.target;   // stagger：还没轮到的先不动
+
+        var a = -k * (s.d - target) - c * s.v;
+        s.v += a * dt;
+        s.d += s.v * dt;
+        s.lag += (s.d - s.lag) * (1 - Math.exp(-dt / tau));
+
+        if (now < s.delayUntil ||
+            Math.abs(s.d - target) > 0.0004 || Math.abs(s.v) > 0.004) {
+          moving = true;
+        } else {
+          // 停在目标上，而不是回到 0。
+          // 这里如果写 s.lag = 0 / s.d = 0，会把「已经撑开」的格子也拉回原样。
+          s.d = target;
+          s.v = 0;
+          s.lag = target;
+        }
+
+        apply(i, s);
+      }
+      return moving;
+    }
+
+    function step(ts) {
+      rafId = 0;
+      var dt = (ts - lastTs) / 1000;
+      // 首帧、或标签页切回来时 dt 可能是 0 / 负数 / 极大，给一个安全值
+      if (!(dt > 0) || dt > 0.05) dt = 0.016;
+      lastTs = ts;
+
+      // 全部到位就不再申请下一帧。注意：此时的 transform 已经写好，
+      // 这里【不能】再清一次——否则刚撑开的格子会在收敛的那一帧弹回去。
+      if (integrate(dt, ts)) rafId = requestAnimationFrame(step);
+    }
+
+    function kick() {
+      if (rafId) return;
+      lastTs = performance.now();
+      rafId = requestAnimationFrame(step);
+    }
+
+    function setTargets(idx, now) {
+      hoverIdx = idx;
+
+      for (var i = 0; i < springs.length; i++) {
+        springs[i].target = 0;
+        springs[i].dir = 0;
+        springs[i].delayUntil = 0;
+      }
+      if (idx < 0 || !springs[idx]) return;
+
+      var locked = cells[idx].classList.contains('is-locked');
+      var strength = locked ? JELLY.weakScale : 1;
+
+      // 目标格：能打卡的正常撑开；未解锁的反向缩进去
+      springs[idx].target = locked ? -JELLY.shrink * 0.6 : JELLY.swell;
+
+      // 同一行的邻居：收缩 + 让位，按距离错开启动时间，做出涟漪
+      var row = rows[rowOf[idx]] || [];
+      var pos = row.indexOf(idx);
+      row.forEach(function (j, k) {
+        if (j === idx) return;
+        springs[j].target = -JELLY.shrink * strength;
+        springs[j].dir = k > pos ? 1 : -1;
+        springs[j].delayUntil = now + Math.abs(k - pos) * JELLY.stagger;
+      });
+    }
+
+    function findCell(e) {
+      if (!e.target || !e.target.closest) return -1;
+      var cell = e.target.closest('.cell');
+      return cell ? cells.indexOf(cell) : -1;
+    }
+
+    function onOver(e) {
+      var idx = findCell(e);
+      if (idx < 0 || idx === hoverIdx) return;
+      setTargets(idx, performance.now());
+      kick();
+    }
+
+    /* 只在真的离开整块网格时复位；格子之间来回移动不归零，避免抖动 */
+    function onOut(e) {
+      if (e.relatedTarget && gridEl && gridEl.contains(e.relatedTarget)) return;
+      if (hoverIdx < 0) return;
+      setTargets(-1, performance.now());
+      kick();
+    }
+
+    function onDown(e) {
+      var idx = findCell(e);
+      if (idx < 0 || !springs[idx]) return;
+      springs[idx].target += JELLY.press;   // 按下再顶一下
+      kick();
+    }
+
+    function detach() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      if (gridEl) {
+        gridEl.removeEventListener('pointerover', onOver);
+        gridEl.removeEventListener('pointerout', onOut);
+        gridEl.removeEventListener('pointerdown', onDown);
+      }
+      if (cells.length) restAll();
+      gridEl = null;
+      cells = [];
+      springs = [];
+      rows = [];
+      rowOf = [];
+      hoverIdx = -1;
+    }
+
+    /* 每次重画页面后调用：地图页接管，其他页自动退出 */
+    function sync() {
+      var next = document.querySelector('#app .level-grid');
+      if (!next) { if (gridEl) detach(); return; }
+      if (next === gridEl) return;
+
+      detach();
+      gridEl = next;
+      cells = Array.prototype.slice.call(gridEl.querySelectorAll('.cell'));
+      springs = cells.map(function () {
+        return { d: 0, v: 0, lag: 0, target: 0, dir: 0, delayUntil: 0 };
+      });
+      measure();
+
+      gridEl.addEventListener('pointerover', onOver);
+      gridEl.addEventListener('pointerout', onOut);
+      gridEl.addEventListener('pointerdown', onDown);
+    }
+
+    if (reduceMotion()) {
+      // 用户开了「减少动态效果」：一格都不动，交回 CSS 里原有的悬停反馈
+      return { sync: function () {} };
+    }
+
+    document.documentElement.classList.add('has-jelly');
+    window.addEventListener('resize', function () {
+      if (!gridEl) return;
+      setTargets(-1, performance.now());
+      restAll();
+      measure();   // 列数可能变了，重新分行
+    });
+
+    return { sync: sync };
+  })();
+
   /* ──────────────────────────────────────────────────────
      七、页面②：关卡详情
      ────────────────────────────────────────────────────── */
@@ -719,6 +963,8 @@
     releaseUrls();   // 先回收上一屏用过的图片地址，再重建
     app.innerHTML = '';
     app.appendChild(buildPage(route));
+
+    jelly.sync();    // 地图页接管关卡落点的果冻交互，其他页自动退出
 
     document.title = (route.id ? '第 ' + route.id + ' 关 · ' : '') + '28 天 Vibe Coding 打卡闯关站';
     window.scrollTo(0, 0);

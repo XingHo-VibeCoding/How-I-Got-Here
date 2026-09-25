@@ -414,9 +414,14 @@ p { margin: 0 0 var(--space-md); }
 }
 
 /* 入场：逐格淡入上浮，用 --i 做 stagger，总数封顶在 400ms 内 */
+/* Day 10：位移改用 translate 这个「独立属性」，不再用 transform。
+   原因：果冻交互由 app.js 往同一个元素写内联 transform，
+   而 CSS 动画的优先级高于内联样式——两者都写 transform 的话，
+   入场这 420ms 里果冻会被动画整个盖住，看起来像没生效。
+   translate 与 transform 是两个独立属性，可以各管各的、自动叠加。 */
 @keyframes cell-in {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; translate: 0 6px; }
+  to   { opacity: 1; translate: 0 0; }
 }
 .cell {
   animation: cell-in 420ms var(--ease-out-quart) backwards;
@@ -756,6 +761,31 @@ p { margin: 0 0 var(--space-md); }
 }
 
 /* ══════════════════════════════════════════════════════════
+   十四、关卡落点的果冻交互（Day 10）
+   ══════════════════════════════════════════════════════════
+   由 app.js 手写弹簧驱动（零依赖、零外部请求）。
+   位移走内联 transform，不碰 width / gap，网格不会重新排版，窄屏也不溢出。
+
+   .has-jelly 由 app.js 挂在 <html> 上，只在用户「没有」开启
+   「减少动态效果」时才加。加上之后做两件事：
+     1. 把 transform 从 .cell 的 transition 里摘掉——否则弹簧每一帧
+        都会被那 200ms 缓动抹平，动起来是糊的、还滞后；
+     2. 关掉原有的 hover 上浮，改由弹簧接管（弹簧自己会撑开）。
+
+   没加这个类时（用户关了动效、或 JS 没跑起来），下面规则全部不生效，
+   页面回到 Day 9 的行为，不会失去任何反馈。
+*/
+
+.has-jelly .cell {
+  transition: box-shadow 200ms var(--ease-out-quart),
+              border-color 200ms var(--ease-out-quart);
+}
+.has-jelly .cell:hover,
+.has-jelly .cell.is-locked:hover {
+  transform: none;
+}
+
+/* ══════════════════════════════════════════════════════════
    类名契约（供后续改动核对，勿删）
    ══════════════════════════════════════════════════════════
    以下类名被 app.js 依赖，本次改造全部保留、语义未变：
@@ -776,4 +806,9 @@ p { margin: 0 0 var(--space-md); }
    Day 9 移除的类名：stage-tag
      页头那个「Day 7 · 步骤④ 回看与当天修改」的胶囊标签已过时，
      HTML 元素与对应样式一并删除；app.js 从未使用它，删除无副作用。
+   Day 10 新增的类名：has-jelly
+     挂在 <html> 上（不是 .cell 上），由 app.js 的果冻模块添加。
+     作用只是「关掉 .cell 原有的 hover 上浮、并把 transform 移出 transition」，
+     不参与元素定位。用户开启「减少动态效果」时不会添加，
+     所以删掉它只会让果冻时的动效变糊，不会破坏任何结构。
 */

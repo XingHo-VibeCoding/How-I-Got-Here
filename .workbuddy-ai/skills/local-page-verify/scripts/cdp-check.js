@@ -226,7 +226,7 @@ function check(name, actual, expect) {
     '--no-sandbox',
     '--no-first-run',
     '--disable-extensions',
-    '--window-size=1180,1000',
+    '--window-size=' + arg('size', '1180,1000'),
     '--remote-debugging-port=' + PORT,
     '--user-data-dir=' + PROFILE,
     'about:blank',
